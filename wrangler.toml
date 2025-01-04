@@ -1,0 +1,11 @@
+name = "web-reader"
+main = "./build/worker.mjs"
+compatibility_date = "2024-04-15"
+
+[build]
+command = "make build"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "web-reader-cache"
+database_id = "89421c7f-383f-4d6e-bae3-a27b82807198"
