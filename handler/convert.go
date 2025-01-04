@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"regexp"
+	"strings"
 	"syscall/js"
 	"time"
 
@@ -72,6 +74,23 @@ func (h *ConvertHandler) handlePostRequest(w http.ResponseWriter, r *http.Reques
 	}
 }
 
+func extractTitle(html string) string {
+	// Try to find <title> tag first
+	titleRegex := regexp.MustCompile(`<title[^>]*>([^<]+)</title>`)
+	if matches := titleRegex.FindStringSubmatch(html); len(matches) > 1 {
+		return strings.TrimSpace(matches[1])
+	}
+	
+	// Fallback: try to find first <h1> tag
+	h1Regex := regexp.MustCompile(`<h1[^>]*>([^<]+)</h1>`)
+	if matches := h1Regex.FindStringSubmatch(html); len(matches) > 1 {
+		return strings.TrimSpace(matches[1])
+	}
+	
+	// If no title found, return empty string
+	return ""
+}
+
 func (h *ConvertHandler) processURL(w http.ResponseWriter, url string, bypassCache bool) error {
 	log.Printf("Processing URL %s (bypass cache: %v)", url, bypassCache)
 	
@@ -103,10 +122,16 @@ func (h *ConvertHandler) processURL(w http.ResponseWriter, url string, bypassCac
 			return err
 		}
 
+		// Extract title from HTML
+		title := extractTitle(html)
+		if title == "" {
+			title = url // Fallback to URL if no title found
+		}
+
 		// Create cache entry
 		cache := model.PageCache{
 			URL:       url,
-			Title:     respValue.Get("url").String(), // Use response URL
+			Title:     title,
 			Markdown:  markdown,
 			FetchedAt: time.Now().Unix(),
 		}
